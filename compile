@@ -1,0 +1,128 @@
+#!/usr/bin/env python
+
+import argparse
+import os, sys
+import datetime
+
+colors = {
+    'HEADER' : '\033[95m',
+    'OKBLUE' : '\033[94m',
+    'OKGREEN' : '\033[92m',
+    'WARNING' : '\033[93m',
+    'FAIL' : '\033[91m',
+    'ENDC' : '\033[0m'
+}
+
+extension = {
+    'cpp' : 'C++',
+    'py' : 'Python'
+}
+
+def color(text, color):
+    return colors[color] + text + colors['ENDC']
+
+def detect_lang(file_path):
+    print color("Detecting language...", "WARNING")
+
+    try:
+        y = file_path.split('.')[1]
+
+        if extension.get(y) == None:
+            print color("Unsupported language!", "FAIL")
+            sys.exit(1)
+
+        print color("Language detected: %s" % (extension[y]), 'OKGREEN')
+
+        return extension[y]
+
+    except IndexError:
+        print color("Can't detect language from file extension for %s" % file_path, "FAIL")
+        sys.exit(1)
+
+def cpp(file_path, compile_only, run_only, input_file, output_file):
+    exe_path = file_path.split('.')[0]
+
+    find_last_slash = file_path.rfind('/')
+    find_extn_dot = file_path.rfind('.')
+
+    compile_command = "g++ -std=c++11 %s -o %s" % (file_path, exe_path)
+    run_command = file_path[:find_last_slash+1] + './' + file_path[find_last_slash+1:find_extn_dot]
+
+    if input_file:
+        run_command = "%s < %s" % (run_command, input_file)
+    if output_file:
+        run_command = "%s > %s" % (run_command, output_file)
+
+    if compile_only == False and run_only == False:
+        print color("Compiling: %s" % (compile_command), "WARNING")
+    
+        start_compile = datetime.datetime.now()
+        ret_code = os.system(compile_command)
+        end_compile = datetime.datetime.now()
+
+        if ret_code != 0:
+            sys.exit(1)
+        
+        print color("Compile time: %s" % (str(end_compile - start_compile)), "OKBLUE")
+
+        print color("Running: %s" % (run_command), "WARNING")
+
+        start_run = datetime.datetime.now()
+        ret_code = os.system(run_command)
+        end_run = datetime.datetime.now()
+
+        if ret_code != 0:
+            sys.exit(1)
+
+        print color("Run time: %s" % (str(end_run - start_run)), "OKBLUE")
+    
+    if compile_only == True:
+        print color("Compiling: %s" % (compile_command), "WARNING")
+
+        start_compile = datetime.datetime.now()
+        ret_code = os.system(compile_command)
+        end_compile = datetime.datetime.now()
+
+        if ret_code != 0:
+            sys.exit(1)
+
+        print color("Compile time: %s" % (str(end_compile - start_compile)), "OKBLUE")
+    
+    if run_only == True:
+        print color("Running: %s" % (run_command), "WARNING")
+
+        start_run = datetime.datetime.now()
+        ret_code = os.system(run_command)
+        end_run = datetime.datetime.now()
+
+        if ret_code != 0:
+            sys.exit(1)
+
+        print color("Compile time: %s" % (str(end_run - start_run)), "OKBLUE")
+
+def python(file_path, compile_only, run_only):
+    pass
+
+def process(file, lang, compile_only, run_only, input_file, output_file):
+    if lang == None:
+        lang = detect_lang(file)
+
+    if lang == 'C++':
+        cpp(file, compile_only, run_only, input_file, output_file)
+    if lang == 'Python':
+        python(file, compile_only, run_only)
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser("Compile codes")
+
+    parser.add_argument("file", type=str, help="File path of code")
+    parser.add_argument("-l", "--lang", type=str, help="Specify the coding language")
+    parser.add_argument("-c", "--compile-only", action="store_true", help="Only compile the code")
+    parser.add_argument("-r", "--run-only", action="store_true", help="Only run the code, skip compile")
+    parser.add_argument("-i", "--input", type=str, help="Specify input file.")
+    parser.add_argument("-o", "--output", type=str, help="Specify output file.")
+    
+
+    args = parser.parse_args()
+
+    process(args.file, args.lang, args.compile_only, args.run_only, args.input, args.output)
